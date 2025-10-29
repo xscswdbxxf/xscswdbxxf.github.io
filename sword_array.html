@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>剑阵</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@700;900&family=ZCOOL+XiaoWei&display=swap');
+        
+        * { margin: 0; padding: 0; overflow: hidden; }
+        
+        body {
+            background: radial-gradient(ellipse at center, #0f051e 0%, #05000f 50%, #000005 100%);
+            font-family: 'ZCOOL XiaoWei', 'Noto Serif SC', serif;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: 
+                radial-gradient(2px 2px at 20% 30%, white, transparent),
+                radial-gradient(2px 2px at 60% 70%, white, transparent),
+                radial-gradient(1px 1px at 50% 50%, white, transparent),
+                radial-gradient(1px 1px at 80% 10%, white, transparent),
+                radial-gradient(2px 2px at 90% 60%, white, transparent),
+                radial-gradient(1px 1px at 33% 85%, white, transparent);
+            background-size: 200% 200%;
+            animation: stars 60s linear infinite;
+            opacity: 0.4;
+            z-index: 1;
+        }
+        
+        @keyframes stars {
+            to { background-position: 100% 100%; }
+        }
+        
+        body::after {
+            content: '';
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 800px; height: 800px;
+            background: radial-gradient(circle, rgba(138,43,226,0.15) 0%, rgba(75,0,130,0.08) 40%, transparent 70%);
+            animation: glow 8s ease-in-out infinite;
+            z-index: 2;
+        }
+        
+        @keyframes glow {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
+            50% { transform: translate(-50%, -50%) scale(1.3); opacity: 0.8; }
+        }
+        
+        #canvas {
+            display: block;
+            width: 100vw; height: 100vh;
+            position: relative;
+            z-index: 10;
+        }
+        
+        #hint {
+            position: fixed;
+            bottom: 20px; right: 20px;
+            color: rgba(200, 150, 255, 0.6);
+            font-size: 14px;
+            pointer-events: none;
+            text-shadow: 0 0 10px rgba(138,43,226,0.8), 0 0 20px rgba(138,43,226,0.4);
+            transition: opacity 0.5s;
+            z-index: 100;
+            font-family: sans-serif;
+        }
+        
+        #hint.hidden { opacity: 0; }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div id="hint">ESC 退出 | 双击关闭</div>
+    
+    <script>
+        const c = document.getElementById('canvas');
+        const ctx = c.getContext('2d', { alpha: true });
+        
+        c.width = innerWidth;
+        c.height = innerHeight;
+        
+        const cx = c.width / 2;
+        const cy = c.height / 2;
+        
+        const words = [
+            "剑心通明", "万法归一", "斩妄存真", "心剑无痕", "剑出无我", "剑道无极", "剑意凌云", "剑啸九天",
+            "破虚成仙", "逆天改命", "问鼎苍穹", "剑斩轮回", "镇压万古", "羽化登仙", "渡劫飞升", "紫气东来",
+            "唯我独尊", "天下无敌", "主宰乾坤", "碾压诸天", "一剑破万法", "横扫八荒", "威震九霄", "气吞山河",
+            "混沌剑体", "太初本源", "鸿蒙紫气", "阴阳两仪", "开天辟地", "盘古开天", "星辰剑阵", "万古长存",
+            "剑破苍穹", "剑斩星辰", "剑碎虚空", "剑气纵横", "剑意滔天", "剑芒万丈", "剑裂苍穹", "剑动山河",
+            "炼气化神", "返虚合道", "金丹期", "元婴期", "渡劫期", "人仙境", "天仙道", "超凡入圣",
+            "轩辕神剑", "诛仙剑阵", "干将莫邪", "七星龙渊",
+            "降龙十八掌", "六脉神剑", "凌波微步", "独孤九剑",
+            "时空之力", "因果法则", "生死轮回", "混元无极", "太极两仪", "五行轮转", "天道之力", "本源之力",
+            "大道无形", "天道无情", "剑道永恒", "道法自然"
+        ];
+        
+        const cols = [];
+        const pts = [];
+        let t = 0, frame = 0;
+        
+        // init
+        words.forEach(w => {
+            cols.push({
+                cs: w.split(''),
+                z: Math.random() * 800 - 400,
+                r: Math.random() * 300 + 250,
+                a: Math.random() * Math.PI * 2,
+                yo: Math.random() * 560 - 280,
+                bs: Math.random() * 24 + 24,
+                sp: Math.random() * 0.009 + 0.006,
+                gp: Math.random() * Math.PI * 2
+            });
+        });
+        
+        function addPts() {
+            if (frame % 4 === 0) {
+                for (let i = 0; i < 2; i++) {
+                    const a = Math.random() * Math.PI * 2;
+                    const r = Math.random() * 400 + 150;
+                    const tp = Math.random() > 0.5;
+                    pts.push({
+                        x: cx + r * Math.cos(a),
+                        y: cy + r * Math.sin(a),
+                        vx: (Math.random() - 0.5) * 2.5,
+                        vy: Math.random() * -2.5 - 0.5,
+                        sz: Math.random() * 2 + 1,
+                        lf: Math.random() * 40 + 30,
+                        ml: 70,
+                        h: tp ? Math.random() * 20 + 270 : Math.random() * 30 + 40,
+                        s: tp ? 70 : 85,
+                        l: tp ? 65 : 60
+                    });
+                }
+            }
+        }
+        
+        function drawPts() {
+            for (let i = pts.length - 1; i >= 0; i--) {
+                const p = pts[i];
+                p.x += p.vx; p.y += p.vy; p.lf--;
+                
+                if (p.lf <= 0) {
+                    pts.splice(i, 1);
+                    continue;
+                }
+                
+                const a = p.lf / p.ml;
+                const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.sz * 3);
+                g.addColorStop(0, `hsla(${p.h},${p.s}%,${p.l}%,${a*0.8})`);
+                g.addColorStop(0.5, `hsla(${p.h},${p.s}%,${p.l}%,${a*0.3})`);
+                g.addColorStop(1, `hsla(${p.h},${p.s}%,${p.l}%,0)`);
+                ctx.fillStyle = g;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.sz * 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        function clr(d, g) {
+            let r, gr, b;
+            if (d > 0.8) {
+                r = ~~(255 * g); gr = ~~((215 + 40 * g)); b = ~~(80 * g);
+            } else if (d > 0.6) {
+                r = ~~((200 + 55 * g)); gr = ~~((120 + 80 * g)); b = ~~(255 * g);
+            } else if (d > 0.4) {
+                r = ~~(180 * g); gr = ~~(100 * g); b = ~~(255 * g);
+            } else {
+                r = ~~(120 * g); gr = ~~(60 * g); b = ~~(200 * g);
+            }
+            return `rgb(${r},${gr},${b})`;
+        }
+        
+        function gclr(d, g) {
+            return d > 0.7 ? `rgba(255,200,100,${g*0.6})` 
+                : d > 0.5 ? `rgba(200,100,255,${g*0.5})` 
+                : `rgba(150,50,230,${g*0.4})`;
+        }
+        
+        function txt(s, x, y, sz, c, gc, d) {
+            ctx.font = `900 ${sz}px 'ZCOOL XiaoWei','Noto Serif SC',serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            if (d > 0.6) {
+                ctx.shadowColor = gc;
+                ctx.shadowBlur = 20;
+                ctx.fillStyle = c;
+                ctx.fillText(s, x, y);
+                if (d > 0.75) {
+                    ctx.shadowBlur = 0;
+                    ctx.globalAlpha = 0.3;
+                    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                    ctx.fillText(s, x, y);
+                    ctx.globalAlpha = 1;
+                }
+            } else {
+                ctx.shadowColor = c;
+                ctx.shadowBlur = 5;
+                ctx.fillStyle = c;
+                ctx.fillText(s, x, y);
+            }
+            ctx.shadowBlur = 0;
+        }
+        
+        function draw() {
+            ctx.clearRect(0, 0, c.width, c.height);
+            frame++; t++;
+            addPts();
+            drawPts();
+            
+            cols.forEach(col => {
+                const ang = t * col.sp + col.a;
+                const x = cx + col.r * Math.cos(ang);
+                const yc = cy + col.yo;
+                const d = Math.max(0.15, (col.z + 420) / 840);
+                const sz = Math.max(16, ~~(col.bs * d));
+                col.gp += 0.03;
+                const gw = 0.75 + 0.25 * Math.sin(col.gp);
+                const color = clr(d, gw);
+                const gcolor = gclr(d, gw);
+                const sp = sz * 1.8;
+                const th = (col.cs.length - 1) * sp;
+                const ys = yc - th / 2;
+                
+                col.cs.forEach((ch, i) => {
+                    txt(ch, x, ys + i * sp, sz, color, gcolor, d);
+                });
+            });
+            
+            requestAnimationFrame(draw);
+        }
+        
+        draw();
+        
+        setTimeout(() => hint.classList.add('hidden'), 3000);
+        
+        addEventListener('keydown', e => e.key === 'Escape' && close());
+        addEventListener('dblclick', () => close());
+        addEventListener('resize', () => {
+            c.width = innerWidth;
+            c.height = innerHeight;
+        });
+    </script>
+</body>
+</html>
